@@ -26,7 +26,6 @@ func main() {
 
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, syscall.SIGINT, syscall.SIGTERM)
-	time.Sleep(20 * time.Second)
 	logger := slog.Default()
 	err := godotenv.Load()
 	if err != nil {
