@@ -13,12 +13,11 @@ import (
 
 type Migrator struct {
 	Pool   *pgxpool.Pool
-	logger *slog.Logger
+	Logger *slog.Logger
 }
 
 func NewMigrator(pool *pgxpool.Pool, logger *slog.Logger) *Migrator {
-	return &Migrator{Pool: pool,
-		logger: logger}
+	return &Migrator{Pool: pool, Logger: logger}
 }
 
 func (m *Migrator) Migrate(path string) error {
@@ -26,22 +25,23 @@ func (m *Migrator) Migrate(path string) error {
 	defer db.Close()
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
-		m.logger.Error("Ошибка при создании драйвера бд", "error", err)
+		m.Logger.Error("Ошибка при создании драйвера бд", "error", err)
 		return err
 	}
 	migrator, err := migrate.NewWithDatabaseInstance(
 		fmt.Sprintf("file://%s", path),
 		"postgres", driver)
 	if err != nil {
-		m.logger.Error("Ошибка при создании миграции", "error", err)
+		m.Logger.Error("Ошибка при создании миграции", "error", err)
 		return err
 	}
 	err = migrator.Up()
 	defer migrator.Close()
 	if err != nil && err != migrate.ErrNoChange {
-		m.logger.Error("Ошибка миграции", "error", err)
+		m.Logger.Error("Ошибка миграции", "error", err)
 		return err
 	}
-	return nil
+	m.Logger.Info("Миграция выполнена")
 
+	return nil
 }

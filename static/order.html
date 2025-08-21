@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск заказа</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .result {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            display: none;
+        }
+
+        .order-details {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔍 Поиск заказа</h1>
+
+        <div class="search-form">
+            <input type="text" id="orderId" placeholder="Введите ID заказа..." required>
+            <button onclick="searchOrder()">Найти</button>
+        </div>
+
+        <div id="loading" class="loading">
+            ⏳ Загрузка...
+        </div>
+
+        <div id="error" class="error"></div>
+
+        <div id="result" class="result">
+            <h2>📦 Информация о заказе</h2>
+            <div id="orderDetails" class="order-details"></div>
+        </div>
+    </div>
+
+    <script>
+        function searchOrder() {
+            const orderId = document.getElementById('orderId').value.trim();
+            if (!orderId) {
+                showError('Пожалуйста, введите ID заказа');
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('result').style.display = 'none';
+
+            fetch(`/getOrder?id=${encodeURIComponent(orderId)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            throw new Error('Заказ не найден');
+                        }
+                        throw new Error('Ошибка сервера');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    displayOrder(data);
+                })
+                .catch(error => {
+                    showError(error.message);
+                })
+                .finally(() => {
+                    document.getElementById('loading').style.display = 'none';
+                });
+        }
+
+        function displayOrder(order) {
+            const orderDetails = document.getElementById('orderDetails');
+
+            orderDetails.innerHTML = `
+                <p><strong>🆔 Order UID:</strong> ${order.order_uid}</p>
+                <p><strong>📦 Track Number:</strong> ${order.track_number}</p>
+                <p><strong>🏢 Entry:</strong> ${order.entry}</p>
+                <p><strong>🌐 Locale:</strong> ${order.locale}</p>
+                <p><strong>👤 Customer ID:</strong> ${order.customer_id}</p>
+                <p><strong>🚚 Delivery Service:</strong> ${order.delivery_service}</p>
+                <p><strong>📅 Date Created:</strong> ${new Date(order.date_created).toLocaleString()}</p>
+                
+                <h3>🚚 Доставка</h3>
+                <p><strong>Имя:</strong> ${order.delivery.name}</p>
+                <p><strong>Телефон:</strong> ${order.delivery.phone}</p>
+                <p><strong>Адрес:</strong> ${order.delivery.city}, ${order.delivery.address}</p>
+                <p><strong>Почта:</strong> ${order.delivery.email}</p>
+                
+                <h3>💳 Оплата</h3>
+                <p><strong>Сумма:</strong> ${order.payment.amount} ${order.payment.currency}</p>
+                <p><strong>Провайдер:</strong> ${order.payment.provider}</p>
+                <p><strong>Банк:</strong> ${order.payment.bank}</p>
+                
+                <h3>📦 Товары (${order.items.length})</h3>
+                ${order.items.map(item => `
+                    <div style="margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                        <p><strong>${item.name}</strong> (${item.brand})</p>
+                        <p>Цена: ${item.price} | Скидка: ${item.sale}%</p>
+                        <p>Артикул: ${item.chrt_id}</p>
+                    </div>
+                `).join('')}
+            `;
+
+            document.getElementById('result').style.display = 'block';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        document.getElementById('orderId').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                searchOrder();
+            }
+        });
+    </script>
+</body>
+
+</html>

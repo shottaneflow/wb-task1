@@ -1,0 +1,14 @@
+FROM golang:1.23.4
+
+WORKDIR /task1
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+
+RUN go build -o /task1/publisher ./cmd/publisher/publisher.go
+RUN chmod +x /task1/publisher
+
+CMD ["/task1/publisher"]
